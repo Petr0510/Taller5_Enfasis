@@ -12,18 +12,9 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 from transformers import pipeline
 
-
-# Descargar explícitamente los recursos necesarios
 nltk.download("punkt")
 nltk.download("stopwords")
-# Descargar recursos NLTK si no están
-for resource in ['stopwords', 'punkt']:
-    try:
-        nltk.data.find(f'corpora/{resource}' if resource == 'stopwords' else f'tokenizers/{resource}')
-    except LookupError:
-        nltk.download(resource)
 
-# Configuración de la página (tema claro)
 st.set_page_config(
     page_title="Customer Feedback Analysis",
     layout="centered",
@@ -59,7 +50,6 @@ def get_sentiment(text):
 uploaded_file = st.file_uploader("Sube tu archivo CSV con una columna llamada 'opinion'", type=["csv"])
 if uploaded_file is not None:
     try:
-        # Intentar leer con diferentes delimitadores
         try:
             df = pd.read_csv(uploaded_file, delimiter=';')
             if 'opinion' not in df.columns:
@@ -102,7 +92,7 @@ if uploaded_file is not None:
             st.pyplot(fig_wc)
             plt.close(fig_wc)
 
-            # --- Top 10 palabras más frecuentes (barras verticales) ---
+            # --- Top 10 palabras más frecuentes ---
             st.subheader("🔟 Palabras Más Frecuentes")
             fig_bar, ax_bar = plt.subplots(figsize=(9, 5), facecolor='white')
             bar_colors = ['#6a89cc', '#38ada9', '#b8e994', '#f6b93b', '#e55039',
@@ -129,7 +119,7 @@ if uploaded_file is not None:
             })
             st.dataframe(df_result)
 
-            # --- Pie chart para distribución de sentimientos ---
+            # --- Pie chart ---
             st.subheader("📈 Distribución de Sentimientos")
             dist = df_result["sentiment"].value_counts()
             pie_colors = ['#38ada9', '#f6b93b', '#e55039']
@@ -151,30 +141,37 @@ if uploaded_file is not None:
             st.pyplot(fig_sent)
             plt.close(fig_sent)
 
-            # --- Resumen general ---
-            st.subheader("📝 Resumen General de Opiniones")
-            full_text = " ".join(opinions)
-            parser = PlaintextParser.from_string(full_text, Tokenizer("spanish"))
-            summarizer = LsaSummarizer()
-            summary_sentences = summarizer(parser.document, 5)
-            summary = " ".join(str(sentence) for sentence in summary_sentences)
-            st.info(summary if summary else full_text)
+            # --- Interacción con los primeros 20 comentarios ---
+            st.subheader("🗂 Interacción con los primeros 20 comentarios")
+            top_20 = df_result.head(20)
+            st.write("Primeros 20 comentarios:")
+            st.dataframe(top_20)
 
-            # --- Analizar nuevo comentario ---
-            st.subheader("💬 Analiza un Nuevo Comentario")
-            new_comment = st.text_area("Escribe aquí una nueva opinión:")
-            if st.button("Analizar Opinión"):
-                if new_comment.strip():
-                    sentiment = get_sentiment(new_comment)
-                    parser_new = PlaintextParser.from_string(new_comment, Tokenizer("spanish"))
-                    summary_sentences_new = summarizer(parser_new.document, 2)
-                    summary_new = " ".join(str(sentence) for sentence in summary_sentences_new)
-                    st.write(f"*Sentimiento:* {sentiment}")
-                    st.write(f"*Resumen:* {summary_new if summary_new else new_comment}")
-                else:
-                    st.warning("Por favor, escribe una opinión.")
+            action = st.radio(
+                "¿Qué deseas hacer con estos comentarios?",
+                ("Mostrar resumen", "Mostrar temas más discutidos")
+            )
+
+            if action == "Mostrar resumen":
+                text_20 = " ".join(top_20["opinion"])
+                parser_20 = PlaintextParser.from_string(text_20, Tokenizer("spanish"))
+                summarizer = LsaSummarizer()
+                summary_20 = summarizer(parser_20.document, 5)
+                resumen = " ".join(str(sentence) for sentence in summary_20)
+                st.info(resumen if resumen else text_20)
+            else:
+                st.subheader("🧵 Temas más discutidos")
+                vectorizer_20 = CountVectorizer(stop_words=stop_words)
+                X20 = vectorizer_20.fit_transform(top_20["opinion"])
+                words_20 = vectorizer_20.get_feature_names_out()
+                word_sums_20 = np.array(X20.sum(axis=0)).flatten()
+                top_idx_20 = np.argsort(word_sums_20)[::-1][:10]
+                temas = [words_20[i] for i in top_idx_20]
+                frecuencias = [word_sums_20[i] for i in top_idx_20]
+                st.table(pd.DataFrame({"Tema": temas, "Frecuencia": frecuencias}))
 
     except Exception as e:
         st.error(f"❌ Error leyendo el archivo o procesando: {e}")
 else:
     st.info("Por favor, sube un archivo CSV con una columna llamada 'opinion'.")
+
