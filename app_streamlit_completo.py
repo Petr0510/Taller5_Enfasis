@@ -152,42 +152,25 @@ if uploaded_file is not None:
                 ("Mostrar resumen", "Mostrar temas más discutidos")
             )
 
-            if action == "Temas más discutidos":
-                st.subheader("🧵 Temas más discutidos")
-                vectorizer_20 = CountVectorizer(stop_words=stop_words)
-                X20 = vectorizer_20.fit_transform(top_20["opinion"])
-                words_20 = vectorizer_20.get_feature_names_out()
-                word_sums_20 = np.array(X20.sum(axis=0)).flatten()
-                top_idx_20 = np.argsort(word_sums_20)[::-1][:10]
-            
-                temas = [words_20[i] for i in top_idx_20]
-                frecuencias = [word_sums_20[i] for i in top_idx_20]
-            
-                fig_temas, ax_temas = plt.subplots(figsize=(9, 5), facecolor='white')
-                bars_temas = ax_temas.bar(temas, frecuencias, color='#60a3bc', edgecolor='black')
-                ax_temas.set_ylabel("Frecuencia", fontsize=14, weight='bold')
-                ax_temas.set_title("Palabras Más Frecuentes en los 20 Comentarios", fontsize=16, weight='bold')
-                ax_temas.set_facecolor('white')
-                fig_temas.patch.set_facecolor('white')
-                for bar, count in zip(bars_temas, frecuencias):
-                    ax_temas.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 0.5,
-                                  str(int(count)), va='bottom', ha='center', color='#222831', fontsize=13, fontweight='bold')
-                plt.xticks(rotation=30, ha='right')
-                plt.tight_layout()
-                st.pyplot(fig_temas)
-                plt.close(fig_temas)
-            
-            elif action == "Mostrar resumen":
-                st.subheader("📝 Resumen de los 20 comentarios")
+            if action == "Mostrar resumen":
                 text_20 = " ".join(top_20["opinion"])
                 parser_20 = PlaintextParser.from_string(text_20, Tokenizer("spanish"))
                 summarizer = LsaSummarizer()
                 summary_20 = summarizer(parser_20.document, 5)
                 resumen = " ".join(str(sentence) for sentence in summary_20)
                 st.info(resumen if resumen else text_20)
+            else:
+                st.subheader("🧵 Temas más discutidos")
+                vectorizer_20 = CountVectorizer(stop_words=stop_words)
+                X20 = vectorizer_20.fit_transform(top_20["opinion"])
+                words_20 = vectorizer_20.get_feature_names_out()
+                word_sums_20 = np.array(X20.sum(axis=0)).flatten()
+                top_idx_20 = np.argsort(word_sums_20)[::-1][:10]
+                temas = [words_20[i] for i in top_idx_20]
+                frecuencias = [word_sums_20[i] for i in top_idx_20]
+                st.table(pd.DataFrame({"Tema": temas, "Frecuencia": frecuencias}))
 
     except Exception as e:
         st.error(f"❌ Error leyendo el archivo o procesando: {e}")
 else:
     st.info("Por favor, sube un archivo CSV con una columna llamada 'opinion'.")
-
