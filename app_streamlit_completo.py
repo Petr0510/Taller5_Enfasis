@@ -16,12 +16,12 @@ nltk.download("punkt")
 nltk.download("stopwords")
 
 st.set_page_config(
-    page_title="Customer Feedback Analysis",
+    page_title="Analizador de comentarios",
     layout="centered",
     initial_sidebar_state="auto"
 )
 
-st.title("📝 Customer Feedback Analysis")
+st.title("📝 Analizador de comentarios")
 
 @st.cache_resource(show_spinner="Cargando modelo de sentimiento...")
 def get_sentiment_pipeline():
