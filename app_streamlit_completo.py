@@ -12,6 +12,10 @@ from sumy.nlp.tokenizers import Tokenizer
 from sumy.summarizers.lsa import LsaSummarizer
 from transformers import pipeline
 
+
+# Descargar explícitamente los recursos necesarios
+nltk.download("punkt")
+nltk.download("stopwords")
 # Descargar recursos NLTK si no están
 for resource in ['stopwords', 'punkt']:
     try:
